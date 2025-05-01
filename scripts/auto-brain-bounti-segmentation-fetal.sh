@@ -102,12 +102,40 @@ echo "--------------------------------------------------------------------------
 echo "-----------------------------------------------------------------------------"
 echo
 
+brain_mask_dilate=4
+brain_mask_erode=2
+while :; do
+case "${1-}" in
+--brain-mask-dilate) 
+    brain_mask_dilate="${2-}"
+    echo " - mask dilate : " ${brain_mask_dilate}
+    shift
+    ;;
+--brain-mask-erode) 
+    brain_mask_erode="${2-}"
+    echo " - mask erode : " ${brain_mask_erode}
+    shift
+    ;;
+-?*) 
+    echo  "Unknown option: $1" 
+    exit
+    ;;
+*) break ;;
+esac
+shift
+done
+
 if [[ $# -ne 2 ]] ; then
     echo "Usage: bash /home/auto-proc-svrtk/scripts/auto-brain-bounti-segmentation-fetal.sh"
+    echo "            [--brain-mask-dilate N]"
+    echo "            [--brain-mask-erode M]"
     echo "            [full path to the folder with 3D T2w SVR recons]"
     echo "            [full path to the folder for segmentation results]"
     echo
     echo "note: tmp processing files are stored in /home/tmp_proc"
+    echo
+    echo "note: optional brain mask dilate and erode parameters are used in operations applied to BET mask,"
+    echo "      and resulting mask is used in BOUNTI segmentation"
     echo
     exit
 else
@@ -281,8 +309,8 @@ do
     ${mirtk_path}/mirtk extract-label ${all_masks[$i]} bet-masks/mask-${jj}.nii.gz 1 1
     ${mirtk_path}/mirtk extract-connected-components bet-masks/mask-${jj}.nii.gz bet-masks/mask-${jj}.nii.gz
     ${mirtk_path}/mirtk transform-image bet-masks/mask-${jj}.nii.gz bet-masks/mask-${jj}.nii.gz -target ${all_stacks[$i]} -labels
-    ${mirtk_path}/mirtk dilate-image bet-masks/mask-${jj}.nii.gz dl.nii.gz -iterations 4
-    ${mirtk_path}/mirtk erode-image dl.nii.gz dl.nii.gz -iterations 2
+    ${mirtk_path}/mirtk dilate-image bet-masks/mask-${jj}.nii.gz dl.nii.gz -iterations ${brain_mask_dilate}
+    ${mirtk_path}/mirtk erode-image dl.nii.gz dl.nii.gz -iterations ${brain_mask_erode}
     ${mirtk_path}/mirtk mask-image ${all_stacks[$i]} dl.nii.gz masked-stacks/masked-stack-${jj}.nii.gz
     ${mirtk_path}/mirtk crop-image masked-stacks/masked-stack-${jj}.nii.gz dl.nii.gz masked-stacks/masked-stack-${jj}.nii.gz
 
